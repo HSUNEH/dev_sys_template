@@ -228,8 +228,8 @@ async function main() {
   // build output
   var parts = [];
   var loc = branch
-    ? "\uD83D\uDCC2 " + C_ACCENT + folder + C_RESET + " | \uD83D\uDD00 " + C_YELLOW + branch + C_RESET
-    : "\uD83D\uDCC2 " + C_ACCENT + folder + C_RESET;
+    ? "\uD83D\uDCC2 " + modelColor + folder + C_RESET + " | \uD83D\uDD00 " + C_YELLOW + branch + C_RESET
+    : "\uD83D\uDCC2 " + modelColor + folder + C_RESET;
   parts.push(loc);
   if (ctxBar) parts.push(ctxBar);
   if (countStr) parts.push(countStr);
