@@ -1,0 +1,109 @@
+{
+  "requirement": "Command names and package metadata remain stable with no metadata drift.",
+  "baseline_revision": "e43311c",
+  "verified_source_revision": "2af002c041580705ba73a5371cd15fb46750a366",
+  "command_names": {
+    "planwithme": "planwithme",
+    "buildwithme": "buildwithme",
+    "interviewwithme": "interviewwithme",
+    "setupwithme": "setupwithme",
+    "push": "push",
+    "patch-ralph-loop": "patch-ralph-loop",
+    "dev-manual": "dev-manual",
+    "custom_command": "custom_command"
+  },
+  "user_invocable": {
+    "planwithme": "true",
+    "buildwithme": "true",
+    "interviewwithme": "true",
+    "setupwithme": "true",
+    "push": "true",
+    "patch-ralph-loop": "true",
+    "dev-manual": "true",
+    "custom_command": "true"
+  },
+  "package_metadata": {
+    "package_json": {
+      "name": "cwm",
+      "version": "2.4.3",
+      "description": "CWM (Claude With Me) - Plan-first development workflow",
+      "author": "HSUNEH",
+      "license": "MIT",
+      "files": [
+        ".claude-plugin/",
+        "hooks/",
+        "skills/",
+        "agents/",
+        "templates/",
+        "hud/",
+        "scripts/",
+        "tests/",
+        "patches/"
+      ]
+    },
+    "plugin_json": {
+      "name": "cwm",
+      "version": "2.4.3",
+      "description": "CWM (Claude With Me) - Plan-first development workflow",
+      "author": {
+        "name": "HSUNEH"
+      },
+      "repository": "https://github.com/HSUNEH/dev_sys_template",
+      "homepage": "https://github.com/HSUNEH/dev_sys_template",
+      "license": "MIT",
+      "keywords": [
+        "claude-code",
+        "plugin",
+        "plan-first",
+        "workflow",
+        "quality-check"
+      ],
+      "skills": "./skills/"
+    },
+    "marketplace_json": {
+      "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+      "name": "cwm",
+      "description": "CWM (Claude With Me) - Plan-first development workflow",
+      "owner": {
+        "name": "HSUNEH"
+      },
+      "plugins": [
+        {
+          "name": "cwm",
+          "description": "Plan-first development workflow. 3-layer enforcement, .status-based plan tracking, auto quality checks.",
+          "version": "2.0.0",
+          "author": {
+            "name": "HSUNEH"
+          },
+          "source": "./",
+          "category": "productivity",
+          "homepage": "https://github.com/HSUNEH/dev_sys_template",
+          "tags": [
+            "plan-first",
+            "workflow",
+            "quality-check",
+            "subagent"
+          ]
+        }
+      ],
+      "version": "2.0.0"
+    }
+  },
+  "stable_checks": {
+    "package_name": true,
+    "package_version": true,
+    "package_description": true,
+    "package_author": true,
+    "package_license": true,
+    "plugin_name": true,
+    "plugin_version": true,
+    "plugin_skills_path": true,
+    "marketplace_name": true,
+    "marketplace_version": true,
+    "marketplace_plugin_name": true,
+    "marketplace_plugin_version": true,
+    "skill_names": true,
+    "skill_invocability": true
+  },
+  "stable": true
+}
