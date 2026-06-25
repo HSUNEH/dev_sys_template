@@ -5,7 +5,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  buildLegacyPayload,
   buildCompactPayload,
+  loadJson,
   measureReduction,
   REFERENCE_PROJECTS,
   validatePhaseHandoff,
@@ -101,6 +103,33 @@ async function testPublicApiImportableFromDocumentedModulePath() {
   }
 }
 
+function testPublicApiPrimarySuccessPaths() {
+  const loaded = loadJson(path.join(__dirname, 'fixtures/token-payload.json'));
+  assert.deepEqual(loaded.plan, fixture.plan, 'loadJson should parse a JSON fixture');
+
+  const legacy = buildLegacyPayload(fixture);
+  const compact = buildCompactPayload(fixture);
+  assert.match(legacy, /^# CWM Build Payload/);
+  assert.match(legacy, /## Repeated Boilerplate/);
+  assert.match(compact, /^# CWM Compact Handoff/);
+  assert.match(compact, /## Token-Saving Rules/);
+  assert.ok(legacy.length > compact.length, 'legacy payload should be larger than compact payload');
+
+  const measured = measureReduction(fixture);
+  assert.equal(measured.legacy, legacy);
+  assert.equal(measured.compact, compact);
+  assert.equal(measured.legacyBytes, Buffer.byteLength(legacy, 'utf8'));
+  assert.equal(measured.compactBytes, Buffer.byteLength(compact, 'utf8'));
+
+  assert.deepEqual(validatePhaseHandoff({
+    plan: 'Add a CLI option',
+    currentPhase: 'Phase 1',
+    blockers: [],
+    phaseId: 'phase-1',
+    status: 'active',
+  }), { ok: true, missing: [], invalid: [] });
+}
+
 function testPlanwithmeHotPathCompactedWithReachableReferences() {
   const skillPath = path.join(root, 'skills/planwithme/SKILL.md');
   const skill = fs.readFileSync(skillPath, 'utf8');
@@ -122,6 +151,30 @@ function testCliMeasure() {
   assert.ok(parsed.reductionPercent >= 20, `expected CLI reduction >=20%, got ${parsed.reductionPercent}%`);
 }
 
+function testPlanwithmeRealPluginTelemetryArtifacts() {
+  const oldRun = JSON.parse(fs.readFileSync(path.resolve(root, '../verify/planwithme-old.json'), 'utf8'));
+  const newRun = JSON.parse(fs.readFileSync(path.resolve(root, '../verify/planwithme-new.json'), 'utf8'));
+  const comparison = JSON.parse(fs.readFileSync(path.resolve(root, '../verify/planwithme-comparison.json'), 'utf8'));
+
+  for (const [label, run] of [['old', oldRun], ['new', newRun]]) {
+    assert.equal(run.subtype, 'success', `${label} real Claude Code plugin run should succeed`);
+    assert.equal(run.is_error, false, `${label} run should not be an error`);
+    assert.ok(run.total_cost_usd > 0, `${label} run should capture total_cost_usd`);
+    assert.ok(run.num_turns > 0, `${label} run should capture turn count`);
+    assert.ok(run.usage.input_tokens > 0, `${label} run should capture usage.input_tokens`);
+    assert.match(run.result, /📋 계획 수립 완료 — 검토 요청/);
+    assert.match(run.result, /승인 전까지 코드를 작성하지 않습니다/);
+  }
+
+  assert.equal(comparison.old.total_cost_usd, oldRun.total_cost_usd);
+  assert.equal(comparison.new.total_cost_usd, newRun.total_cost_usd);
+  assert.equal(comparison.old.turns, oldRun.num_turns);
+  assert.equal(comparison.new.turns, newRun.num_turns);
+  assert.ok(comparison.new.total_cost_usd <= comparison.old.total_cost_usd, 'new run should not cost more than old run');
+  assert.ok(comparison.new.turns <= comparison.old.turns, 'new run should not use more assistant turns than old run');
+  assert.ok(Object.values(comparison.semantic_checks).every(Boolean), 'semantic comparison checks should all pass');
+}
+
 const tests = [
   testTokenReduction,
   testCompactionPreservesRequiredFields,
@@ -129,7 +182,9 @@ const tests = [
   testHandoffValidation,
   testPackagingCommandNamesUnchanged,
   testPublicApiImportableFromDocumentedModulePath,
+  testPublicApiPrimarySuccessPaths,
   testPlanwithmeHotPathCompactedWithReachableReferences,
+  testPlanwithmeRealPluginTelemetryArtifacts,
   testCliMeasure,
 ];
 
