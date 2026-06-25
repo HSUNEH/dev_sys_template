@@ -4,9 +4,30 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const oldPath = path.join(__dirname, 'planwithme-old.json');
-const newPath = path.join(__dirname, 'planwithme-new.json');
-const comparisonPath = path.join(__dirname, 'planwithme-comparison.json');
+
+function resolveInputPaths(argv) {
+  const defaults = {
+    oldPath: path.join(__dirname, 'planwithme-old.json'),
+    newPath: path.join(__dirname, 'planwithme-new.json'),
+    comparisonPath: path.join(__dirname, 'planwithme-comparison.json'),
+  };
+  const flagMap = {
+    '--old': 'oldPath',
+    '--new': 'newPath',
+    '--comparison': 'comparisonPath',
+  };
+
+  const resolved = { ...defaults };
+  for (let index = 0; index < argv.length; index += 1) {
+    const flag = argv[index];
+    if (!(flag in flagMap)) fail(`unknown argument ${flag}`);
+    const value = argv[index + 1];
+    if (!value) fail(`missing value for ${flag}`);
+    resolved[flagMap[flag]] = path.resolve(value);
+    index += 1;
+  }
+  return resolved;
+}
 
 function fail(message) {
   console.error(`planwithme verification failed: ${message}`);
@@ -55,6 +76,7 @@ function assertRealSuccessfulRun(label, run) {
   }
 }
 
+const { oldPath, newPath, comparisonPath } = resolveInputPaths(process.argv.slice(2));
 const oldRun = readJson(oldPath);
 const newRun = readJson(newPath);
 const comparison = readJson(comparisonPath);
@@ -92,17 +114,4 @@ for (const [name, passed] of Object.entries({
   }
 }
 
-console.log(JSON.stringify({
-  ok: true,
-  old: {
-    usage_total_tokens: oldTokens,
-    total_cost_usd: oldCost,
-    assistant_turn_count: oldTurns,
-  },
-  new: {
-    usage_total_tokens: newTokens,
-    total_cost_usd: newCost,
-    assistant_turn_count: newTurns,
-  },
-  gates: comparison.telemetry_gates,
-}, null, 2));
+console.log('planwithme verification passed');

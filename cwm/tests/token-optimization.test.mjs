@@ -177,6 +177,8 @@ function testPlanwithmeRealPluginTelemetryArtifacts() {
   });
 
   assert.equal(hardGateCheck.status, 0, hardGateCheck.stderr || hardGateCheck.stdout);
+  assert.equal(hardGateCheck.stdout.trim(), 'planwithme verification passed');
+  assert.equal(hardGateCheck.stderr, '');
 
   assert.equal(
     comparison.verification_project.same_copied_temporary_mini_project,
@@ -282,6 +284,37 @@ function testPlanwithmeRealPluginTelemetryArtifacts() {
   }
 }
 
+function testPlanwithmeHardGateFailureContract() {
+  const verifyRoot = path.resolve(root, '../verify');
+  const tmpDir = fs.mkdtempSync(path.join(verifyRoot, 'planwithme-failure-contract-'));
+  try {
+    const oldPath = path.join(tmpDir, 'old.json');
+    const newPath = path.join(tmpDir, 'new.json');
+    const comparisonPath = path.join(tmpDir, 'comparison.json');
+    fs.copyFileSync(path.join(verifyRoot, 'planwithme-old.json'), oldPath);
+    fs.copyFileSync(path.join(verifyRoot, 'planwithme-new.json'), newPath);
+    const comparison = JSON.parse(fs.readFileSync(path.join(verifyRoot, 'planwithme-comparison.json'), 'utf8'));
+    comparison.telemetry_gates.no_new_stderr_errors = false;
+    fs.writeFileSync(comparisonPath, `${JSON.stringify(comparison, null, 2)}\n`);
+
+    const failed = spawnSync(process.execPath, [
+      path.join(verifyRoot, 'planwithme-hard-gates.mjs'),
+      '--old', oldPath,
+      '--new', newPath,
+      '--comparison', comparisonPath,
+    ], {
+      cwd: path.resolve(root, '..'),
+      encoding: 'utf8',
+    });
+
+    assert.equal(failed.status, 1, failed.stdout || failed.stderr);
+    assert.equal(failed.stdout, '');
+    assert.match(failed.stderr, /^planwithme verification failed: comparison telemetry_gates\.no_new_stderr_errors is not true\n$/);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 const tests = [
   testTokenReduction,
   testCompactionPreservesRequiredFields,
@@ -292,6 +325,7 @@ const tests = [
   testPublicApiPrimarySuccessPaths,
   testPlanwithmeHotPathCompactedWithReachableReferences,
   testPlanwithmeRealPluginTelemetryArtifacts,
+  testPlanwithmeHardGateFailureContract,
   testCliMeasure,
 ];
 
