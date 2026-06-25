@@ -8,6 +8,10 @@
     "type": "git",
     "url": "https://github.com/HSUNEH/dev_sys_template"
   },
+  "scripts": {
+    "test": "node tests/token-optimization.test.mjs",
+    "check": "npm test && npm pack --dry-run"
+  },
   "files": [
     ".claude-plugin/",
     "hooks/",
@@ -16,6 +20,7 @@
     "templates/",
     "hud/",
     "scripts/",
+    "tests/",
     "patches/"
   ]
 }

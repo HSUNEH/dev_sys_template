@@ -1,0 +1,29 @@
+{
+  "plan": [
+    "Implement CWM token optimization without changing command names.",
+    "Preserve plan, current phase, and blocker information exactly."
+  ],
+  "currentPhase": [
+    "Phase 2: compact phase handoff and verify payload reduction"
+  ],
+  "blockers": [
+    "None"
+  ],
+  "workflowGuidance": [
+    "Read PLAN.md, CONTEXT.md, and CHECKLIST.md before editing.",
+    "Return only concise YAML summary to the parent context.",
+    "Do not dump full logs into the main context. Summarize failures in 3-5 lines."
+  ],
+  "repeatedPromptBlocks": [
+    "Read PLAN.md, CONTEXT.md, and CHECKLIST.md before editing.",
+    "Read PLAN.md, CONTEXT.md, and CHECKLIST.md before editing.",
+    "Return only concise YAML summary to the parent context.",
+    "Return only concise YAML summary to the parent context.",
+    "Do not dump full logs into the main context. Summarize failures in 3-5 lines.",
+    "Do not dump full logs into the main context. Summarize failures in 3-5 lines."
+  ],
+  "referenceNotes": [
+    "Use Caveman as inspiration for short command-style prompts.",
+    "Use RTK as inspiration for compressing noisy command output before context insertion."
+  ]
+}

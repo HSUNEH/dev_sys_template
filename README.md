@@ -85,11 +85,14 @@
 
 > /cwm:buildwithme
 → 활성 플랜의 Phase 단위로 build-runner 에이전트에 위임
+→ 컴팩트 handoff로 plan/currentPhase/blockers만 필수 보존
 → 구현 + 테스트 일괄 수행, CHECKLIST 자동 갱신
 → 완료 → /cwm:planwithme 다음-작업
 ```
 
 > 💡 계획 확정 후에는 직접 구현하지 말고 `/cwm:buildwithme`로 위임하세요. build-runner가 Phase 단위로 나눠 구현·테스트·재시도까지 자동 처리합니다.
+>
+> 🪨 **Token optimization:** CWM은 Caveman(`JuliusBrussee/caveman`)의 짧은 명령 스타일과 RTK(`rtk-ai/rtk`)의 verbose output 압축 아이디어를 참고해 반복 prompt block을 dedupe하고, Phase handoff에는 `plan`, `currentPhase`, `blockers`, `phaseId`, `status`만 필수 보존합니다.
 
 간단한 수정은 플랜 없이 바로 진행됩니다:
 
