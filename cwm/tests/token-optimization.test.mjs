@@ -72,6 +72,7 @@ function testPackagingCommandNamesUnchanged() {
   const plugin = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin/plugin.json'), 'utf8'));
   const marketplace = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin/marketplace.json'), 'utf8'));
   const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const planwithme = fs.readFileSync(path.join(root, 'skills/planwithme/SKILL.md'), 'utf8');
 
   assert.equal(plugin.name, 'cwm');
   assert.equal(plugin.skills, './skills/');
@@ -79,6 +80,39 @@ function testPackagingCommandNamesUnchanged() {
   assert.equal(marketplace.plugins[0].name, 'cwm');
   assert.equal(packageJson.name, 'cwm');
   assert.ok(packageJson.files.includes('scripts/'), 'package must include scripts/ for token compaction utility');
+  assert.match(planwithme, /^name: planwithme$/m);
+  assert.match(planwithme, /^user-invocable: true$/m);
+  assert.match(planwithme, /Skill\("cwm:interviewwithme"/);
+}
+
+async function testPublicApiImportableFromDocumentedModulePath() {
+  const modulePath = '../scripts/token-compact.mjs';
+  const api = await import(modulePath);
+  for (const symbol of [
+    'REFERENCE_PROJECTS',
+    'REQUIRED_HANDOFF_FIELDS',
+    'buildCompactPayload',
+    'buildLegacyPayload',
+    'loadJson',
+    'measureReduction',
+    'validatePhaseHandoff',
+  ]) {
+    assert.ok(symbol in api, `${symbol} must be importable from ${modulePath}`);
+  }
+}
+
+function testPlanwithmeHotPathCompactedWithReachableReferences() {
+  const skillPath = path.join(root, 'skills/planwithme/SKILL.md');
+  const skill = fs.readFileSync(skillPath, 'utf8');
+  const skillBytes = Buffer.byteLength(skill, 'utf8');
+  assert.ok(skillBytes < 8000, `planwithme hot-path SKILL.md should stay compact, got ${skillBytes} bytes`);
+
+  for (const rel of ['references/document-templates.md', 'references/workflow-details.md']) {
+    assert.ok(skill.includes(rel), `${rel} must be linked from planwithme/SKILL.md`);
+    const refPath = path.join(path.dirname(skillPath), rel);
+    assert.ok(fs.existsSync(refPath), `${rel} must be reachable from planwithme/SKILL.md`);
+    assert.ok(Buffer.byteLength(fs.readFileSync(refPath), 'utf8') > 500, `${rel} should contain the moved details`);
+  }
 }
 
 function testCliMeasure() {
@@ -94,11 +128,13 @@ const tests = [
   testReferenceDocumentation,
   testHandoffValidation,
   testPackagingCommandNamesUnchanged,
+  testPublicApiImportableFromDocumentedModulePath,
+  testPlanwithmeHotPathCompactedWithReachableReferences,
   testCliMeasure,
 ];
 
 for (const test of tests) {
-  test();
+  await test();
   console.log(`✓ ${test.name}`);
 }
 
