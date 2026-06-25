@@ -130,30 +130,50 @@ function testPublicApiPrimarySuccessPaths() {
   }), { ok: true, missing: [], invalid: [] });
 }
 
-function testPlanwithmeHotPathCompactedWithReachableReferences() {
-  const skillPath = path.join(root, 'skills/planwithme/SKILL.md');
-  const evidencePath = path.resolve(root, '../verify/planwithme-hotpath.json');
+function assertCompactSkillWithReferences(skillName, maxBytes, refs) {
+  const skillPath = path.join(root, `skills/${skillName}/SKILL.md`);
   const skill = fs.readFileSync(skillPath, 'utf8');
   const skillBytes = Buffer.byteLength(skill, 'utf8');
-  const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
+  assert.ok(skillBytes < maxBytes, `${skillName} hot-path SKILL.md should stay compact (<${maxBytes}), got ${skillBytes} bytes`);
+  assert.match(skill, new RegExp(`^name: ${skillName}$`, 'm'));
+  assert.match(skill, /^user-invocable: true$/m);
 
-  assert.equal(evidence.skill_name, 'planwithme');
-  assert.equal(evidence.hot_path_file, 'cwm/skills/planwithme/SKILL.md');
-  assert.equal(evidence.compacted_bytes, skillBytes);
-  assert.ok(evidence.baseline_bytes > skillBytes, 'baseline SKILL.md bytes must exceed compacted bytes');
-  assert.ok(
-    evidence.reduction_percent >= 30,
-    `planwithme hot-path SKILL.md reduction must be >=30%, got ${evidence.reduction_percent}%`,
-  );
-
-  for (const rel of ['references/document-templates.md', 'references/workflow-details.md']) {
-    assert.ok(skill.includes(rel), `${rel} must be linked from planwithme/SKILL.md`);
+  for (const rel of refs) {
+    assert.ok(skill.includes(rel), `${rel} must be linked from ${skillName}/SKILL.md`);
     const refPath = path.join(path.dirname(skillPath), rel);
-    assert.ok(fs.existsSync(refPath), `${rel} must be reachable from planwithme/SKILL.md`);
+    assert.ok(fs.existsSync(refPath), `${rel} must be reachable from ${skillName}/SKILL.md`);
     assert.ok(Buffer.byteLength(fs.readFileSync(refPath), 'utf8') > 500, `${rel} should contain the moved details`);
   }
+}
 
-  for (const moved of evidence.moved_references) {
+function testWithmeHotPathsCompactedWithReachableReferences() {
+  const planwithmeEvidencePath = path.resolve(root, '../verify/planwithme-hotpath.json');
+  const planwithmeEvidence = JSON.parse(fs.readFileSync(planwithmeEvidencePath, 'utf8'));
+  const planSkillPath = path.join(root, 'skills/planwithme/SKILL.md');
+  const planSkillBytes = Buffer.byteLength(fs.readFileSync(planSkillPath, 'utf8'), 'utf8');
+
+  assert.equal(planwithmeEvidence.skill_name, 'planwithme');
+  assert.equal(planwithmeEvidence.hot_path_file, 'cwm/skills/planwithme/SKILL.md');
+  assert.equal(planwithmeEvidence.compacted_bytes, planSkillBytes);
+  assert.ok(planwithmeEvidence.baseline_bytes > planSkillBytes, 'baseline SKILL.md bytes must exceed compacted bytes');
+  assert.ok(
+    planwithmeEvidence.reduction_percent >= 30,
+    `planwithme hot-path SKILL.md reduction must be >=30%, got ${planwithmeEvidence.reduction_percent}%`,
+  );
+
+  assertCompactSkillWithReferences('planwithme', 8000, [
+    'references/document-templates.md',
+    'references/workflow-details.md',
+  ]);
+  assertCompactSkillWithReferences('interviewwithme', 4500, [
+    'references/interview-workflow.md',
+  ]);
+  assertCompactSkillWithReferences('setupwithme', 5000, [
+    'references/setup-templates.md',
+    'references/setup-workflow.md',
+  ]);
+
+  for (const moved of planwithmeEvidence.moved_references) {
     assert.ok(moved.linked_from_hot_path, `${moved.path} must be marked as linked from hot path`);
     assert.ok(moved.reachable, `${moved.path} must be marked as reachable`);
     assert.ok(fs.existsSync(path.resolve(root, '..', moved.path)), `${moved.path} must exist`);
@@ -323,7 +343,7 @@ const tests = [
   testPackagingCommandNamesUnchanged,
   testPublicApiImportableFromDocumentedModulePath,
   testPublicApiPrimarySuccessPaths,
-  testPlanwithmeHotPathCompactedWithReachableReferences,
+  testWithmeHotPathsCompactedWithReachableReferences,
   testPlanwithmeRealPluginTelemetryArtifacts,
   testPlanwithmeHardGateFailureContract,
   testCliMeasure,
