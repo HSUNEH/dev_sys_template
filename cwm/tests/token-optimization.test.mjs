@@ -171,6 +171,12 @@ function testPlanwithmeRealPluginTelemetryArtifacts() {
   const oldRun = JSON.parse(fs.readFileSync(path.resolve(root, '../verify/planwithme-old.json'), 'utf8'));
   const newRun = JSON.parse(fs.readFileSync(path.resolve(root, '../verify/planwithme-new.json'), 'utf8'));
   const comparison = JSON.parse(fs.readFileSync(path.resolve(root, '../verify/planwithme-comparison.json'), 'utf8'));
+  const hardGateCheck = spawnSync(process.execPath, [path.resolve(root, '../verify/planwithme-hard-gates.mjs')], {
+    cwd: path.resolve(root, '..'),
+    encoding: 'utf8',
+  });
+
+  assert.equal(hardGateCheck.status, 0, hardGateCheck.stderr || hardGateCheck.stdout);
 
   assert.equal(
     comparison.verification_project.same_copied_temporary_mini_project,
@@ -189,6 +195,8 @@ function testPlanwithmeRealPluginTelemetryArtifacts() {
     assert.ok(run.usage.input_tokens > 0, `${label} run should capture usage.input_tokens`);
     assert.ok(run.usage.total_tokens > 0, `${label} run should capture derived usage.total_tokens`);
     assert.equal(run.verification_metadata.real_claude_code_plugin_run, true, `${label} run should be real Claude Code output`);
+    assert.equal(run.verification_metadata.exit_code, 0, `${label} real Claude Code plugin run should exit 0`);
+    assert.equal(run.verification_metadata.stderr, '', `${label} real Claude Code plugin run should not emit stderr`);
     assert.match(run.result, /📋 \*\*?계획 수립 완료 — 검토 요청\*\*?|📋 계획 수립 완료 — 검토 요청/);
     assert.match(run.result, /승인 전까지 코드를 작성하지 않습니다/);
   }
@@ -199,6 +207,8 @@ function testPlanwithmeRealPluginTelemetryArtifacts() {
   assert.equal(comparison.new.usage_total_tokens, newRun.usage.total_tokens);
   assert.equal(comparison.old.turns, oldRun.num_turns);
   assert.equal(comparison.new.turns, newRun.num_turns);
+  assert.equal(comparison.old.assistant_turn_count, oldRun.num_turns);
+  assert.equal(comparison.new.assistant_turn_count, newRun.num_turns);
   assert.equal(
     comparison.telemetry_delta.total_cost_usd,
     newRun.total_cost_usd - oldRun.total_cost_usd,
@@ -211,6 +221,25 @@ function testPlanwithmeRealPluginTelemetryArtifacts() {
   );
   assert.ok(Number.isInteger(comparison.old.turns) && comparison.old.turns > 0, 'old run should compare assistant turn count');
   assert.ok(Number.isInteger(comparison.new.turns) && comparison.new.turns > 0, 'new run should compare assistant turn count');
+  assert.ok(
+    newRun.usage.total_tokens <= oldRun.usage.total_tokens * 0.80,
+    `usage.total_tokens hard gate failed: new=${newRun.usage.total_tokens}, old=${oldRun.usage.total_tokens}`,
+  );
+  assert.ok(
+    newRun.total_cost_usd <= oldRun.total_cost_usd * 1.03,
+    `total_cost_usd hard gate failed: new=${newRun.total_cost_usd}, old=${oldRun.total_cost_usd}`,
+  );
+  assert.ok(
+    newRun.num_turns <= oldRun.num_turns + 1,
+    `assistant_turn_count hard gate failed: new=${newRun.num_turns}, old=${oldRun.num_turns}`,
+  );
+  assert.deepEqual(comparison.telemetry_gates, {
+    usage_total_tokens_under_80_percent: true,
+    total_cost_usd_under_103_percent: true,
+    assistant_turn_count_within_old_plus_1: true,
+    no_nonzero_exits: true,
+    no_new_stderr_errors: true,
+  });
   assert.ok(Object.values(comparison.semantic_checks).every(Boolean), 'semantic comparison checks should all pass');
 
   const semantic = comparison.semantic_outputs;
