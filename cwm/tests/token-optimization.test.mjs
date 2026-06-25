@@ -132,15 +132,31 @@ function testPublicApiPrimarySuccessPaths() {
 
 function testPlanwithmeHotPathCompactedWithReachableReferences() {
   const skillPath = path.join(root, 'skills/planwithme/SKILL.md');
+  const evidencePath = path.resolve(root, '../verify/planwithme-hotpath.json');
   const skill = fs.readFileSync(skillPath, 'utf8');
   const skillBytes = Buffer.byteLength(skill, 'utf8');
-  assert.ok(skillBytes < 8000, `planwithme hot-path SKILL.md should stay compact, got ${skillBytes} bytes`);
+  const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
+
+  assert.equal(evidence.skill_name, 'planwithme');
+  assert.equal(evidence.hot_path_file, 'cwm/skills/planwithme/SKILL.md');
+  assert.equal(evidence.compacted_bytes, skillBytes);
+  assert.ok(evidence.baseline_bytes > skillBytes, 'baseline SKILL.md bytes must exceed compacted bytes');
+  assert.ok(
+    evidence.reduction_percent >= 30,
+    `planwithme hot-path SKILL.md reduction must be >=30%, got ${evidence.reduction_percent}%`,
+  );
 
   for (const rel of ['references/document-templates.md', 'references/workflow-details.md']) {
     assert.ok(skill.includes(rel), `${rel} must be linked from planwithme/SKILL.md`);
     const refPath = path.join(path.dirname(skillPath), rel);
     assert.ok(fs.existsSync(refPath), `${rel} must be reachable from planwithme/SKILL.md`);
     assert.ok(Buffer.byteLength(fs.readFileSync(refPath), 'utf8') > 500, `${rel} should contain the moved details`);
+  }
+
+  for (const moved of evidence.moved_references) {
+    assert.ok(moved.linked_from_hot_path, `${moved.path} must be marked as linked from hot path`);
+    assert.ok(moved.reachable, `${moved.path} must be marked as reachable`);
+    assert.ok(fs.existsSync(path.resolve(root, '..', moved.path)), `${moved.path} must exist`);
   }
 }
 

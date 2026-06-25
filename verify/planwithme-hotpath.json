@@ -1,0 +1,23 @@
+{
+  "skill_name": "planwithme",
+  "hot_path_file": "cwm/skills/planwithme/SKILL.md",
+  "baseline_revision": "e43311c",
+  "baseline_bytes": 11625,
+  "compacted_bytes": 5691,
+  "reduction_percent": 51.05,
+  "minimum_required_reduction_percent": 30,
+  "moved_references": [
+    {
+      "path": "cwm/skills/planwithme/references/document-templates.md",
+      "bytes": 1836,
+      "linked_from_hot_path": true,
+      "reachable": true
+    },
+    {
+      "path": "cwm/skills/planwithme/references/workflow-details.md",
+      "bytes": 4366,
+      "linked_from_hot_path": true,
+      "reachable": true
+    }
+  ]
+}
