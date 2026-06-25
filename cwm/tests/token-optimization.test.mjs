@@ -190,6 +190,43 @@ function testPlanwithmeRealPluginTelemetryArtifacts() {
   assert.ok(Number.isInteger(comparison.old.turns) && comparison.old.turns > 0, 'old run should compare assistant turn count');
   assert.ok(Number.isInteger(comparison.new.turns) && comparison.new.turns > 0, 'new run should compare assistant turn count');
   assert.ok(Object.values(comparison.semantic_checks).every(Boolean), 'semantic comparison checks should all pass');
+
+  const semantic = comparison.semantic_outputs;
+  assert.ok(semantic, 'comparison must capture structured semantic outputs, not only token telemetry');
+  assert.deepEqual(semantic.workflow_phases, ['Phase 1', 'Phase 2']);
+  assert.deepEqual(semantic.task_ordering, [
+    'parse CLI name input in src/cli.mjs before changing the main guard',
+    'verify positional, --name, missing-name/default behavior, then run npm test',
+  ]);
+  assert.deepEqual(semantic.acceptance_criteria, [
+    'positional name input works',
+    '--name value input works',
+    '--name=value input works or remains covered by parser design',
+    'missing input falls back to world',
+    'npm test passes',
+  ]);
+  assert.deepEqual(semantic.commands, ['npm test']);
+  assert.deepEqual(semantic.required_artifacts, ['PLAN.md', 'CONTEXT.md', 'CHECKLIST.md', '.status pending']);
+  assert.deepEqual(semantic.final_plan_sections, [
+    'purpose/scope/current-state analysis',
+    'phase implementation plan',
+    'technical decisions',
+    'risks',
+    'constraints and source request context',
+    'phase checklist and quality checks',
+  ]);
+  assert.match(oldRun.result, /Phase 1[\s\S]*Phase 2/, 'old run should preserve ordered phases');
+  assert.match(newRun.result, /Phase 1[\s\S]*Phase 2/, 'new run should preserve ordered phases');
+  for (const required of ['src/cli.mjs', 'greet', '--name', 'positional', 'npm test']) {
+    assert.ok(oldRun.result.includes(required), `old run should mention ${required}`);
+    assert.ok(newRun.result.includes(required), `new run should mention ${required}`);
+  }
+  assert.ok(/world|기본값/.test(oldRun.result), 'old run should mention default-name fallback');
+  assert.ok(/world|기본값/.test(newRun.result), 'new run should mention default-name fallback');
+  for (const artifact of ['PLAN.md', 'CONTEXT.md', 'CHECKLIST.md', '.status']) {
+    assert.ok(oldRun.result.includes(artifact), `old run should mention ${artifact}`);
+    assert.ok(newRun.result.includes(artifact), `new run should mention ${artifact}`);
+  }
 }
 
 const tests = [

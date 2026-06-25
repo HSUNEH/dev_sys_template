@@ -81,6 +81,92 @@
     "old mentions src/cli.mjs": true,
     "new mentions src/cli.mjs": true,
     "old includes test plan": true,
-    "new includes test plan": true
+    "new includes test plan": true,
+    "old has ordered Phase 1 before Phase 2": true,
+    "new has ordered Phase 1 before Phase 2": true,
+    "old mentions final artifacts": true,
+    "new mentions final artifacts": true,
+    "old preserves user decisions": true,
+    "new preserves user decisions": true,
+    "old preserves command": true,
+    "new preserves command": true,
+    "old preserves acceptance inputs": true,
+    "new preserves acceptance inputs": true,
+    "new lists final plan sections": true
+  },
+  "semantic_outputs": {
+    "workflow_phases": [
+      "Phase 1",
+      "Phase 2"
+    ],
+    "required_user_facing_decisions": [
+      "keep greet function unchanged",
+      "parse CLI arguments in src/cli.mjs main entry path",
+      "avoid external dependencies for one option",
+      "fall back to world when name input is missing",
+      "--name takes precedence over positional input when both are present"
+    ],
+    "required_artifacts": [
+      "PLAN.md",
+      "CONTEXT.md",
+      "CHECKLIST.md",
+      ".status pending"
+    ],
+    "final_plan_sections": [
+      "purpose/scope/current-state analysis",
+      "phase implementation plan",
+      "technical decisions",
+      "risks",
+      "constraints and source request context",
+      "phase checklist and quality checks"
+    ],
+    "task_ordering": [
+      "parse CLI name input in src/cli.mjs before changing the main guard",
+      "verify positional, --name, missing-name/default behavior, then run npm test"
+    ],
+    "acceptance_criteria": [
+      "positional name input works",
+      "--name value input works",
+      "--name=value input works or remains covered by parser design",
+      "missing input falls back to world",
+      "npm test passes"
+    ],
+    "commands": [
+      "npm test"
+    ],
+    "old_plan_output_summary": {
+      "ordered_phases": true,
+      "artifacts": [
+        "PLAN.md",
+        "CONTEXT.md",
+        "CHECKLIST.md",
+        ".status pending"
+      ],
+      "mentions": [
+        "src/cli.mjs",
+        "greet",
+        "--name",
+        "positional",
+        "world/default fallback",
+        "npm test"
+      ]
+    },
+    "new_plan_output_summary": {
+      "ordered_phases": true,
+      "artifacts": [
+        "PLAN.md",
+        "CONTEXT.md",
+        "CHECKLIST.md",
+        ".status pending"
+      ],
+      "mentions": [
+        "src/cli.mjs",
+        "greet",
+        "--name",
+        "positional",
+        "world/default fallback",
+        "npm test"
+      ]
+    }
   }
 }
