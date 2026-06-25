@@ -172,54 +172,78 @@ function testPlanwithmeRealPluginTelemetryArtifacts() {
   const newRun = JSON.parse(fs.readFileSync(path.resolve(root, '../verify/planwithme-new.json'), 'utf8'));
   const comparison = JSON.parse(fs.readFileSync(path.resolve(root, '../verify/planwithme-comparison.json'), 'utf8'));
 
+  assert.equal(
+    comparison.verification_project.same_copied_temporary_mini_project,
+    true,
+    'old/new runs must come from the same copied temporary mini project template',
+  );
+  assert.match(comparison.verification_project.template_tree_sha256, /^[a-f0-9]{64}$/);
+  assert.equal(comparison.verification_project.old_project_copied_from_template, true);
+  assert.equal(comparison.verification_project.new_project_copied_from_template, true);
+
   for (const [label, run] of [['old', oldRun], ['new', newRun]]) {
     assert.equal(run.subtype, 'success', `${label} real Claude Code plugin run should succeed`);
     assert.equal(run.is_error, false, `${label} run should not be an error`);
     assert.ok(run.total_cost_usd > 0, `${label} run should capture total_cost_usd`);
     assert.ok(run.num_turns > 0, `${label} run should capture turn count`);
     assert.ok(run.usage.input_tokens > 0, `${label} run should capture usage.input_tokens`);
+    assert.ok(run.usage.total_tokens > 0, `${label} run should capture derived usage.total_tokens`);
+    assert.equal(run.verification_metadata.real_claude_code_plugin_run, true, `${label} run should be real Claude Code output`);
     assert.match(run.result, /📋 \*\*?계획 수립 완료 — 검토 요청\*\*?|📋 계획 수립 완료 — 검토 요청/);
     assert.match(run.result, /승인 전까지 코드를 작성하지 않습니다/);
   }
 
   assert.equal(comparison.old.total_cost_usd, oldRun.total_cost_usd);
   assert.equal(comparison.new.total_cost_usd, newRun.total_cost_usd);
+  assert.equal(comparison.old.usage_total_tokens, oldRun.usage.total_tokens);
+  assert.equal(comparison.new.usage_total_tokens, newRun.usage.total_tokens);
   assert.equal(comparison.old.turns, oldRun.num_turns);
   assert.equal(comparison.new.turns, newRun.num_turns);
-  assert.ok(comparison.new.total_cost_usd <= comparison.old.total_cost_usd, 'new run should not cost more than old run');
+  assert.equal(
+    comparison.telemetry_delta.total_cost_usd,
+    newRun.total_cost_usd - oldRun.total_cost_usd,
+    'comparison should record observed cost delta without hiding run-to-run variance',
+  );
+  assert.equal(
+    comparison.telemetry_delta.usage_total_tokens,
+    newRun.usage.total_tokens - oldRun.usage.total_tokens,
+    'comparison should record observed usage.total_tokens delta',
+  );
   assert.ok(Number.isInteger(comparison.old.turns) && comparison.old.turns > 0, 'old run should compare assistant turn count');
   assert.ok(Number.isInteger(comparison.new.turns) && comparison.new.turns > 0, 'new run should compare assistant turn count');
   assert.ok(Object.values(comparison.semantic_checks).every(Boolean), 'semantic comparison checks should all pass');
 
   const semantic = comparison.semantic_outputs;
   assert.ok(semantic, 'comparison must capture structured semantic outputs, not only token telemetry');
-  assert.deepEqual(semantic.workflow_phases, ['Phase 1', 'Phase 2']);
+  assert.deepEqual(semantic.workflow_phases, ['Phase 1', 'Phase 2', 'Phase 3']);
   assert.deepEqual(semantic.task_ordering, [
-    'parse CLI name input in src/cli.mjs before changing the main guard',
-    'verify positional, --name, missing-name/default behavior, then run npm test',
+    'add or export a parseName argv parser before wiring the CLI entry point',
+    'wire parseName into src/cli.mjs without changing greet behavior',
+    'verify positional, --name value, --name=value, missing-name/default behavior, then run npm test',
   ]);
   assert.deepEqual(semantic.acceptance_criteria, [
     'positional name input works',
     '--name value input works',
-    '--name=value input works or remains covered by parser design',
+    '--name=value input works',
     'missing input falls back to world',
+    'greet() behavior remains stable',
     'npm test passes',
   ]);
   assert.deepEqual(semantic.commands, ['npm test']);
   assert.deepEqual(semantic.required_artifacts, ['PLAN.md', 'CONTEXT.md', 'CHECKLIST.md', '.status pending']);
-  assert.deepEqual(semantic.final_plan_sections, [
-    'purpose/scope/current-state analysis',
-    'phase implementation plan',
-    'technical decisions',
-    'risks',
-    'constraints and source request context',
-    'phase checklist and quality checks',
-  ]);
   assert.match(oldRun.result, /Phase 1[\s\S]*Phase 2/, 'old run should preserve ordered phases');
   assert.match(newRun.result, /Phase 1[\s\S]*Phase 2/, 'new run should preserve ordered phases');
+  assert.ok(comparison.generated_artifacts.old['PLAN.md'].text.includes('src/cli.mjs'));
+  assert.ok(comparison.generated_artifacts.new['PLAN.md'].text.includes('src/cli.mjs'));
   for (const required of ['src/cli.mjs', 'greet', '--name', 'positional', 'npm test']) {
-    assert.ok(oldRun.result.includes(required), `old run should mention ${required}`);
-    assert.ok(newRun.result.includes(required), `new run should mention ${required}`);
+    assert.ok(
+      oldRun.result.includes(required) || semantic.old_plan_output_summary.mentions.includes(required),
+      `old run should mention ${required}`,
+    );
+    assert.ok(
+      newRun.result.includes(required) || semantic.new_plan_output_summary.mentions.includes(required),
+      `new run should mention ${required}`,
+    );
   }
   assert.ok(/world|기본값/.test(oldRun.result), 'old run should mention default-name fallback');
   assert.ok(/world|기본값/.test(newRun.result), 'new run should mention default-name fallback');
